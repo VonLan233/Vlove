@@ -68,34 +68,42 @@ enum OperationMode {
 extern OperationMode currentMode;
 
 // ============ GESTURES ============
-// Static gesture IDs
+// Gesture IDs are now defined in gesture/GestureLib.h
+// This enum is kept for backward compatibility
+
 enum GestureID {
-  GESTURE_NONE = 0,
+  // Legacy static gesture IDs (1-99)
+  GESTURE_NONE_LEGACY = 0,
 
   // Numbers 0-9
-  GESTURE_NUM_0,
-  GESTURE_NUM_1,
-  GESTURE_NUM_2,
-  GESTURE_NUM_3,
-  GESTURE_NUM_4,
-  GESTURE_NUM_5,
-  GESTURE_NUM_6,
-  GESTURE_NUM_7,
-  GESTURE_NUM_8,
-  GESTURE_NUM_9,
+  GESTURE_NUM_0_LEGACY = 1,
+  GESTURE_NUM_1_LEGACY,
+  GESTURE_NUM_2_LEGACY,
+  GESTURE_NUM_3_LEGACY,
+  GESTURE_NUM_4_LEGACY,
+  GESTURE_NUM_5_LEGACY,
+  GESTURE_NUM_6_LEGACY,
+  GESTURE_NUM_7_LEGACY,
+  GESTURE_NUM_8_LEGACY,
+  GESTURE_NUM_9_LEGACY,
 
   // Common gestures
-  GESTURE_THUMBS_UP,    // 👍
-  GESTURE_THUMBS_DOWN,  // 👎
-  GESTURE_PEACE,        // ✌️
-  GESTURE_ROCK,         // 🤘
-  GESTURE_OK,           // 👌
-  GESTURE_FIST,         // ✊
-  GESTURE_OPEN_HAND,    // 🖐️
-  GESTURE_POINT,        // 👆
-  GESTURE_CALL,         // 🤙
+  GESTURE_THUMBS_UP_LEGACY,
+  GESTURE_PEACE_LEGACY,
+  GESTURE_ROCK_LEGACY,
+  GESTURE_OK_LEGACY,
+  GESTURE_FIST_LEGACY,
+  GESTURE_OPEN_HAND_LEGACY,
+  GESTURE_POINT_LEGACY,
+  GESTURE_CALL_LEGACY,
+  GESTURE_GUN_LEGACY,
 
-  GESTURE_COUNT
+  GESTURE_STATIC_COUNT,
+
+  // Dynamic gesture IDs (100+)
+  GESTURE_WAVE_LEGACY = 100,
+  GESTURE_FIST_RELEASE_LEGACY = 101,
+  GESTURE_PINCH_RELEASE_LEGACY = 102
 };
 
 // ============ PIANO ============

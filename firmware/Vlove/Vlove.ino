@@ -71,6 +71,10 @@ void setup() {
   }
   #endif
 
+  // Initialize gesture recognizer
+  gestureRecognizer.begin();
+  Serial.println("Gesture recognizer initialized (static + dynamic).");
+
   // Initialize calibration
   calibration.begin();
 
@@ -139,21 +143,31 @@ void loop() {
 }
 
 void processGestureMode() {
-  static int lastGesture = GESTURE_NONE;
+  static GestureId lastStaticGesture = GESTURE_NONE;
 
-  int gesture = gestureRecognizer.recognize(mappedFingers);
+  // Use extended recognition for static + dynamic gestures
+  GestureResult result = gestureRecognizer.recognizeEx(mappedFingers, LOOP_DELAY_MS);
 
-  // Only send when gesture changes
-  if (gesture != lastGesture) {
-    lastGesture = gesture;
+  // Handle static gestures (only report on change)
+  if (result.isNewStatic && result.staticGesture != GESTURE_NONE) {
+    // Send gesture command
+    comm.sendGesture(result.staticGesture, gestureRecognizer.getGestureName(result.staticGesture));
 
-    if (gesture != GESTURE_NONE) {
-      // Send gesture command
-      comm.sendGesture(gesture, gestureRecognizer.getGestureName(gesture));
+    Serial.print("Static: ");
+    Serial.print(gestureRecognizer.getGestureName(result.staticGesture));
+    Serial.print(" (");
+    Serial.print(result.confidence);
+    Serial.println("%)");
 
-      Serial.print("Gesture: ");
-      Serial.println(gestureRecognizer.getGestureName(gesture));
-    }
+    lastStaticGesture = result.staticGesture;
+  }
+
+  // Handle dynamic gestures (always report when detected)
+  if (result.isNewDynamic && result.dynamicGesture != GESTURE_NONE) {
+    comm.sendGesture(result.dynamicGesture, gestureRecognizer.getGestureName(result.dynamicGesture));
+
+    Serial.print("Dynamic: ");
+    Serial.println(gestureRecognizer.getGestureName(result.dynamicGesture));
   }
 }
 
