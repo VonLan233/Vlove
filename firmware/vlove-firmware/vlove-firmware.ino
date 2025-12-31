@@ -123,6 +123,9 @@ void loop() {
 
   // Process based on current mode
   switch (currentMode) {
+    case MODE_HOME:
+      // Paused - do nothing, wait for commands
+      break;
     case MODE_GESTURE:
       processGestureMode();
       break;
@@ -142,30 +145,55 @@ void loop() {
   delay(LOOP_DELAY_MS);
 }
 
+// Debug flag for gesture recognition
+bool gestureDebug = false;
+
+// Gesture display interval (ms)
+#define GESTURE_DISPLAY_INTERVAL 200
+
 void processGestureMode() {
-  static GestureId lastStaticGesture = GESTURE_NONE;
+  static GestureId lastSentGesture = GESTURE_NONE;
+  static unsigned long lastDisplayTime = 0;
 
   // Use extended recognition for static + dynamic gestures
   GestureResult result = gestureRecognizer.recognizeEx(mappedFingers, LOOP_DELAY_MS);
 
-  // Handle static gestures (only report on change)
-  if (result.isNewStatic && result.staticGesture != GESTURE_NONE) {
-    // Send gesture command
-    comm.sendGesture(result.staticGesture, gestureRecognizer.getGestureName(result.staticGesture));
+  // Display gesture every GESTURE_DISPLAY_INTERVAL ms
+  if (millis() - lastDisplayTime >= GESTURE_DISPLAY_INTERVAL) {
+    lastDisplayTime = millis();
 
-    Serial.print("Static: ");
-    Serial.print(gestureRecognizer.getGestureName(result.staticGesture));
-    Serial.print(" (");
-    Serial.print(result.confidence);
-    Serial.println("%)");
+    // Debug: show finger values
+    if (gestureDebug) {
+      Serial.print("Fingers[0-255]: ");
+      for (int i = 0; i < 5; i++) {
+        uint8_t normalized = (uint8_t)((long)mappedFingers[i] * 255 / 4095);
+        Serial.print(normalized);
+        Serial.print(" ");
+      }
+      Serial.print(" -> ");
+    }
 
-    lastStaticGesture = result.staticGesture;
+    // Always show current gesture
+    if (result.staticGesture != GESTURE_NONE) {
+      Serial.print("Gesture: ");
+      Serial.print(gestureRecognizer.getGestureName(result.staticGesture));
+      Serial.print(" (");
+      Serial.print(result.confidence);
+      Serial.println("%)");
+
+      // Send to comm if changed
+      if (result.staticGesture != lastSentGesture) {
+        comm.sendGesture(result.staticGesture, gestureRecognizer.getGestureName(result.staticGesture));
+        lastSentGesture = result.staticGesture;
+      }
+    } else {
+      Serial.println("Gesture: None");
+    }
   }
 
   // Handle dynamic gestures (always report when detected)
   if (result.isNewDynamic && result.dynamicGesture != GESTURE_NONE) {
     comm.sendGesture(result.dynamicGesture, gestureRecognizer.getGestureName(result.dynamicGesture));
-
     Serial.print("Dynamic: ");
     Serial.println(gestureRecognizer.getGestureName(result.dynamicGesture));
   }
@@ -247,6 +275,16 @@ void processCommand(String cmd) {
     Serial.println("EEPROM cleared.");
     calibration.startCalibration();
   }
+  else if (cmd == "DEBUG" || cmd == "D") {
+    gestureDebug = !gestureDebug;
+    Serial.print("Gesture debug: ");
+    Serial.println(gestureDebug ? "ON" : "OFF");
+  }
+  else if (cmd == "HOME" || cmd == "MENU" || cmd == "M") {
+    currentMode = MODE_HOME;
+    Serial.println("Mode: HOME (Paused)");
+    printHelp();
+  }
   else if (cmd == "GESTURE" || cmd == "G") {
     currentMode = MODE_GESTURE;
     Serial.println("Mode: GESTURE RECOGNITION");
@@ -324,6 +362,7 @@ void printHelp() {
   Serial.println("CLEAR    - Clear EEPROM & recalibrate");
   Serial.println();
   Serial.println("--- Modes ---");
+  Serial.println("M/HOME   - Main menu (pause)");
   Serial.println("G        - Gesture recognition mode");
   Serial.println("P1       - Piano: Single notes");
   Serial.println("P2       - Piano: Pitch control");

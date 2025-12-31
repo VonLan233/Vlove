@@ -14,9 +14,9 @@ private:
   // Track finger states for note on/off
   bool fingerActive[5] = {false, false, false, false, false};
 
-  // Threshold for triggering a note
-  const int NOTE_ON_THRESHOLD = 1500;   // Below this = note on
-  const int NOTE_OFF_THRESHOLD = 2500;  // Above this = note off
+  // Threshold for triggering a note (high value = finger bent = note on)
+  const int NOTE_ON_THRESHOLD = 1500;   // Above this = note on
+  const int NOTE_OFF_THRESHOLD = 1000;  // Below this = note off
 
   // For pitch bend mode
   int lastPitchBend = 0;
@@ -59,8 +59,8 @@ private:
     event.velocity = 100;
 
     for (int i = 0; i < 5; i++) {
-      bool shouldBeActive = fingers[i] < NOTE_ON_THRESHOLD;
-      bool shouldBeInactive = fingers[i] > NOTE_OFF_THRESHOLD;
+      bool shouldBeActive = fingers[i] > NOTE_ON_THRESHOLD;    // Finger bent = note on
+      bool shouldBeInactive = fingers[i] < NOTE_OFF_THRESHOLD; // Finger extended = note off
 
       // Note ON: finger just closed
       if (shouldBeActive && !fingerActive[i]) {
@@ -68,8 +68,8 @@ private:
         event.hasEvent = true;
         event.type = PIANO_NOTE_ON;
         event.note = baseNotes[i];
-        // Velocity based on how fast/hard (simplified: use position)
-        event.velocity = map(fingers[i], 0, NOTE_ON_THRESHOLD, 127, 64);
+        // Velocity based on how far bent (higher = louder)
+        event.velocity = map(fingers[i], NOTE_ON_THRESHOLD, ANALOG_MAX, 64, 127);
         return event;
       }
 
@@ -96,8 +96,8 @@ private:
     // Map 0-4095 to MIDI pitch bend range (-8192 to 8191)
     int pitchBend = map(fingers[1], 0, ANALOG_MAX, -8192, 8191);
 
-    // Use middle finger to trigger note on/off
-    bool noteActive = fingers[2] < NOTE_ON_THRESHOLD;
+    // Use middle finger to trigger note on/off (bent = active)
+    bool noteActive = fingers[2] > NOTE_ON_THRESHOLD;
 
     // Note state change
     if (noteActive != fingerActive[2]) {
@@ -130,10 +130,10 @@ private:
     event.type = PIANO_CHORD;
     event.chordSize = 0;
 
-    // Determine which fingers are active
+    // Determine which fingers are active (bent = active)
     bool active[5];
     for (int i = 0; i < 5; i++) {
-      active[i] = fingers[i] < NOTE_ON_THRESHOLD;
+      active[i] = fingers[i] > NOTE_ON_THRESHOLD;
     }
 
     // Build chord based on active fingers

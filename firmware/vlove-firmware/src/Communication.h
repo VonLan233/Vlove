@@ -4,7 +4,7 @@
 #include <BluetoothSerial.h>
 
 // Global mode variable
-OperationMode currentMode = MODE_GESTURE;
+OperationMode currentMode = MODE_HOME;
 
 class Communication {
 private:

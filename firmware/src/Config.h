@@ -4,7 +4,7 @@
 
 // ============ FEATURE TOGGLES ============
 // Comment out to disable features
-// #define ENABLE_IMU           // MPU6050 IMU support (需要外接MPU6050模块)
+// #define ENABLE_IMU           // MPU6050 IMU support (requires external MPU6050 module)
 #define ENABLE_OPENGLOVES       // OpenGloves protocol for SteamVR
 
 // ============ PIN CONFIGURATION ============

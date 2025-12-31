@@ -91,17 +91,17 @@ GestureId StaticMatcher::match(const int* fingerPos, uint8_t* confidence) {
         }
     }
 
-    // Debouncing: require stable match for DEBOUNCE_FRAMES frames
+    // Simple debounce: require stable match for DEBOUNCE_FRAMES
     if (bestMatch == lastGesture) {
         if (stableCount < 255) stableCount++;
     } else {
-        stableCount = 0;
+        stableCount = 1;
         lastGesture = bestMatch;
     }
 
     if (confidence) *confidence = bestConfidence;
 
-    // Only return gesture if stable
+    // Return gesture if stable enough
     return (stableCount >= DEBOUNCE_FRAMES) ? bestMatch : GESTURE_NONE;
 }
 

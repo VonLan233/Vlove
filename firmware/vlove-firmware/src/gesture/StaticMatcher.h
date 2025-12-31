@@ -47,7 +47,7 @@ private:
     // Debouncing state
     GestureId lastGesture;
     uint8_t stableCount;
-    static const uint8_t DEBOUNCE_FRAMES = 3;
+    static const uint8_t DEBOUNCE_FRAMES = 2;  // Minimal debounce
 
     // Internal matching functions
     uint8_t calculateConfidence(const int* fingerPos, const StaticGestureDef& gesture);

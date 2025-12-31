@@ -4,7 +4,7 @@
 
 // ============ FEATURE TOGGLES ============
 // Comment out to disable features
-// #define ENABLE_IMU           // MPU6050 IMU support (需要外接MPU6050模块)
+// #define ENABLE_IMU           // MPU6050 IMU support (requires external MPU6050 module)
 #define ENABLE_OPENGLOVES       // OpenGloves protocol for SteamVR
 
 // ============ PIN CONFIGURATION ============
@@ -26,7 +26,7 @@
 
 // ============ COMMUNICATION ============
 #define BAUD_RATE         115200
-#define BT_DEVICE_NAME    "Vlove"
+#define BT_DEVICE_NAME    "vlove-left"
 
 // Communication modes
 #define COMM_SERIAL       0
@@ -39,12 +39,13 @@
 #define ANALOG_MAX        4095
 
 // ============ SENSOR INVERSION ============
-// Set to true if potentiometer polarity is reversed
-#define INVERT_THUMB   false
+// Set to true if potentiometer polarity is reversed (use 4095 - value)
+// All fingers should have: low value = extended, high value = closed
+#define INVERT_THUMB   true   // Thumb needs inversion (0=closed -> inverted)
 #define INVERT_INDEX   true
-#define INVERT_MIDDLE  false
+#define INVERT_MIDDLE  true
 #define INVERT_RING    true
-#define INVERT_PINKY   false
+#define INVERT_PINKY   true
 
 // ============ OPENGLOVES CONFIG ============
 // Alpha encoding character mapping
@@ -56,7 +57,8 @@
 
 // ============ MODES ============
 enum OperationMode {
-  MODE_GESTURE = 0,
+  MODE_HOME = 0,       // Paused at main menu
+  MODE_GESTURE,
   MODE_PIANO_SINGLE,
   MODE_PIANO_PITCH,
   MODE_PIANO_CHORD,

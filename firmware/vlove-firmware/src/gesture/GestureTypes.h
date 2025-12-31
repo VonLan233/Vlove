@@ -94,9 +94,10 @@ struct GestureTracker {
 #define POS_TOLERANCE  40
 
 // Helper macros for gesture definitions
-#define FINGER_EXTENDED  {CMP_BELOW, 0, 60}
-#define FINGER_HALF      {CMP_RANGE, 90, 170}
-#define FINGER_CLOSED    {CMP_ABOVE, 180, 255}
+// Adjusted thresholds based on Vlove sensor data
+#define FINGER_EXTENDED  {CMP_BELOW, 0, 120}    // 0-120 = extended (relaxed)
+#define FINGER_HALF      {CMP_RANGE, 100, 180}  // 100-180 = half bent
+#define FINGER_CLOSED    {CMP_ABOVE, 150, 255}  // 150-255 = closed (relaxed)
 #define FINGER_ANY       {CMP_ANY, 0, 255}
 
 // Utility function to normalize ANALOG_MAX to 0-255 scale

@@ -41,87 +41,100 @@
 // ============================================
 // Static Gesture Library
 // Priority: 100 = high specificity, 90 = general pose
+// Note: Thumb sensor has limited range, use FINGER_ANY where thumb state is ambiguous
 // ============================================
+
+// Thumb: low value = extended, high value = closed
+// Simplified to just two states: <200 = extended, >200 = closed
+#define THUMB_EXTENDED   {CMP_BELOW, 0, 200}    // <=200 = extended
+#define THUMB_CLOSED     {CMP_ABOVE, 200, 255}  // >=200 = closed
+#define THUMB_ANY        FINGER_ANY             // Ignore thumb
+
+// Very relaxed closed threshold for middle finger in rock gesture
+#define FINGER_CLOSED_RELAXED {CMP_ABOVE, 60, 255}
+
 const StaticGestureDef PROGMEM GESTURE_LIB_STATIC[] = {
     // ----- Numbers -----
 
-    // 0: Fist (all closed)
+    // 0: Fist (all closed) - ignore thumb due to sensor limitation
     { GESTURE_NUM_0, 90,
-      { FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
+      { THUMB_ANY, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
 
-    // 1: Index up, others closed
+    // 1: Index up, others closed - ignore thumb
     { GESTURE_NUM_1, 100,
-      { FINGER_CLOSED, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
+      { THUMB_ANY, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
 
-    // 2: Index and middle up (peace sign)
+    // 2: Index and middle up (peace sign) - ignore thumb
     { GESTURE_NUM_2, 100,
-      { FINGER_CLOSED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED } },
+      { THUMB_ANY, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED_RELAXED, FINGER_CLOSED_RELAXED } },
 
-    // 3: Index, middle, ring up
+    // 3: Index, middle, ring up - ignore thumb
     { GESTURE_NUM_3, 100,
-      { FINGER_CLOSED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED } },
+      { THUMB_ANY, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED } },
 
     // 4: All fingers up except thumb
     { GESTURE_NUM_4, 100,
-      { FINGER_CLOSED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED } },
+      { THUMB_ANY, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED } },
 
     // 5: All fingers open (open hand)
     { GESTURE_NUM_5, 90,
       { FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED } },
 
-    // 6: Thumb and pinky up (shaka)
+    // 6: Thumb and pinky up (shaka) - thumb extended required
     { GESTURE_NUM_6, 100,
-      { FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_EXTENDED } },
+      { THUMB_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_EXTENDED } },
 
     // 7: Thumb, index, middle up
     { GESTURE_NUM_7, 100,
-      { FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED } },
+      { THUMB_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED } },
 
     // 8: Thumb, index, middle, ring up
     { GESTURE_NUM_8, 100,
-      { FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED } },
+      { THUMB_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED } },
 
-    // 9: Thumb up only (same as thumbs up)
+    // 9/Thumbs up: Only thumb clearly extended, others closed
     { GESTURE_NUM_9, 95,
-      { FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
+      { THUMB_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
 
     // ----- Common Gestures -----
 
-    // Thumbs up: Only thumb up
+    // Thumbs up: Only thumb up (same as 9)
     { GESTURE_THUMBS_UP, 100,
-      { FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
+      { THUMB_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
 
-    // Peace: Index and middle up
+    // Peace: Index and middle up - ignore thumb
     { GESTURE_PEACE, 100,
-      { FINGER_CLOSED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED } },
+      { THUMB_ANY, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED_RELAXED, FINGER_CLOSED_RELAXED } },
 
-    // Rock: Index and pinky up
+    // Rock: Index and pinky up, middle and ring closed - ignore thumb
+    // Middle needs to be clearly bent (>=100), not just slightly
     { GESTURE_ROCK, 100,
-      { FINGER_CLOSED, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_EXTENDED } },
+      { THUMB_ANY, FINGER_EXTENDED, {CMP_ABOVE, 100, 255}, FINGER_CLOSED_RELAXED, FINGER_EXTENDED } },
 
-    // OK: Thumb and index half (touching), others extended
+    // OK: Thumb closed (bent to touch index), index slightly bent, others extended
+    // User data: 213 83 0 0 0
     { GESTURE_OK, 100,
-      { FINGER_HALF, FINGER_HALF, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED } },
+      { THUMB_CLOSED, {CMP_RANGE, 50, 150}, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED } },
 
-    // Fist: All closed
+    // Fist: All closed - ignore thumb
     { GESTURE_FIST, 90,
-      { FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
+      { THUMB_ANY, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
 
     // Open hand: All open
     { GESTURE_OPEN_HAND, 90,
       { FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED, FINGER_EXTENDED } },
 
-    // Point: Index extended, thumb half, others closed
+    // Point: Index extended, others closed - ignore thumb
     { GESTURE_POINT, 100,
-      { FINGER_HALF, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
+      { THUMB_ANY, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
 
     // Call me (shaka): Thumb and pinky extended
     { GESTURE_CALL, 100,
-      { FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_EXTENDED } },
+      { THUMB_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED, FINGER_EXTENDED } },
 
     // Gun: Thumb and index extended
     { GESTURE_GUN, 100,
-      { FINGER_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
+      { THUMB_EXTENDED, FINGER_EXTENDED, FINGER_CLOSED, FINGER_CLOSED, FINGER_CLOSED } },
 };
 
 #define GESTURE_LIB_STATIC_COUNT (sizeof(GESTURE_LIB_STATIC) / sizeof(StaticGestureDef))

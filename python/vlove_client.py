@@ -9,6 +9,7 @@ Commands:
     python vlove_client.py                    # Auto-detect serial port
     python vlove_client.py /dev/cu.usbserial-110
     python vlove_client.py --bt               # Use Bluetooth
+    python vlove_client.py --list             # List available ports
 """
 
 import serial
@@ -20,7 +21,7 @@ from audio_player import AudioPlayer
 
 # ============ CONFIGURATION ============
 DEFAULT_BAUD = 115200
-BT_DEVICE_NAME = "Vlove"
+BT_DEVICE_NAME = "vlove-left"
 
 # Gesture names for display
 GESTURE_NAMES = {
@@ -28,14 +29,14 @@ GESTURE_NAMES = {
     1: "0", 2: "1", 3: "2", 4: "3", 5: "4",
     6: "5", 7: "6", 8: "7", 9: "8", 10: "9",
     11: "👍 Thumbs Up",
-    12: "👎 Thumbs Down",
-    13: "✌️ Peace",
-    14: "🤘 Rock",
-    15: "👌 OK",
-    16: "✊ Fist",
-    17: "🖐️ Open Hand",
-    18: "👆 Point",
-    19: "🤙 Call Me",
+    12: "✌️ Peace",
+    13: "🤘 Rock",
+    14: "👌 OK",
+    15: "✊ Fist",
+    16: "🖐️ Open Hand",
+    17: "👆 Point",
+    18: "🤙 Call Me",
+    19: "🔫 Gun",
 }
 
 
@@ -47,39 +48,137 @@ class VloveClient:
         self.running = False
         self.audio = AudioPlayer()
 
-    def find_port(self):
-        """Auto-detect serial port"""
+    def find_usb_port(self):
+        """Auto-detect USB serial port"""
         ports = serial.tools.list_ports.comports()
         for p in ports:
-            # Look for common ESP32 identifiers
-            if 'usbserial' in p.device.lower() or 'cp210' in p.description.lower():
+            desc = p.description.lower()
+            device = p.device.lower()
+            # Look for common ESP32 USB-UART chips
+            if 'cp210' in desc or 'ch340' in desc or 'ftdi' in desc:
                 return p.device
-            if 'ch340' in p.description.lower():
+            if 'usbserial' in device or 'usbmodem' in device:
                 return p.device
         return None
 
-    def connect(self):
-        """Connect to ESP32"""
-        if self.use_bluetooth:
-            print("Bluetooth mode not implemented in this version.")
-            print("Please use USB serial.")
-            return False
+    def find_bluetooth_port(self):
+        """Auto-detect Bluetooth serial port"""
+        ports = serial.tools.list_ports.comports()
+        bt_name = BT_DEVICE_NAME.lower()
 
-        if not self.port:
-            self.port = self.find_port()
+        for p in ports:
+            device = p.device.lower()
+            desc = p.description.lower()
+
+            # macOS: Bluetooth ports appear as /dev/cu.<device-name> or /dev/tty.<device-name>
+            # Linux: Usually /dev/rfcomm0
+            # Windows: COM ports with Bluetooth in description
+
+            if bt_name in device or bt_name in desc:
+                return p.device
+            if 'bluetooth' in desc and bt_name in desc:
+                return p.device
+
+        # macOS specific: try common Bluetooth port patterns
+        import os
+        if sys.platform == 'darwin':
+            possible_ports = [
+                f'/dev/cu.{BT_DEVICE_NAME}',
+                f'/dev/tty.{BT_DEVICE_NAME}',
+                f'/dev/cu.{BT_DEVICE_NAME}-SerialPort',
+                f'/dev/tty.{BT_DEVICE_NAME}-SerialPort',
+            ]
+            for port in possible_ports:
+                if os.path.exists(port):
+                    return port
+
+        return None
+
+    def list_ports(self):
+        """List all available ports"""
+        ports = serial.tools.list_ports.comports()
+        print("\nAvailable ports:")
+        print("-" * 60)
+
+        usb_ports = []
+        bt_ports = []
+        other_ports = []
+
+        for p in ports:
+            device = p.device.lower()
+            desc = p.description.lower()
+
+            # Categorize ports
+            if 'bluetooth' in desc or BT_DEVICE_NAME.lower() in device:
+                bt_ports.append(p)
+            elif 'usbserial' in device or 'cp210' in desc or 'ch340' in desc:
+                usb_ports.append(p)
+            else:
+                other_ports.append(p)
+
+        if usb_ports:
+            print("\n[USB Serial]")
+            for p in usb_ports:
+                print(f"  {p.device}: {p.description}")
+
+        if bt_ports:
+            print("\n[Bluetooth]")
+            for p in bt_ports:
+                print(f"  {p.device}: {p.description}")
+
+        if other_ports:
+            print("\n[Other]")
+            for p in other_ports:
+                print(f"  {p.device}: {p.description}")
+
+        if not ports:
+            print("  No ports found")
+
+        print("-" * 60)
+
+    def connect(self):
+        """Connect to ESP32 via USB or Bluetooth"""
+
+        # If port is specified, use it directly
+        if self.port:
+            pass
+        elif self.use_bluetooth:
+            # Auto-detect Bluetooth port
+            print(f"Searching for Bluetooth device '{BT_DEVICE_NAME}'...")
+            self.port = self.find_bluetooth_port()
             if not self.port:
-                print("Error: Could not find ESP32. Please specify port.")
-                print("Available ports:")
+                print(f"\nError: Bluetooth device '{BT_DEVICE_NAME}' not found.")
+                print("\nPlease ensure:")
+                print(f"  1. ESP32 Bluetooth is enabled (send 'BT' command via USB first)")
+                print(f"  2. Device '{BT_DEVICE_NAME}' is paired with your computer")
+                print(f"  3. On macOS: System Preferences > Bluetooth > Connect")
+                print("\nAvailable ports:")
                 for p in serial.tools.list_ports.comports():
                     print(f"  {p.device}: {p.description}")
                 return False
+            print(f"Found Bluetooth port: {self.port}")
+        else:
+            # Auto-detect USB port
+            self.port = self.find_usb_port()
+            if not self.port:
+                print("Error: Could not find ESP32 USB port.")
+                print("Try --bt for Bluetooth or specify port manually.")
+                self.list_ports()
+                return False
 
+        # Connect to the port
         try:
             self.serial = serial.Serial(self.port, DEFAULT_BAUD, timeout=0.1)
-            print(f"Connected to {self.port}")
+            conn_type = "Bluetooth" if self.use_bluetooth else "USB"
+            print(f"Connected via {conn_type}: {self.port}")
             return True
-        except Exception as e:
+        except serial.SerialException as e:
             print(f"Error connecting to {self.port}: {e}")
+            if self.use_bluetooth:
+                print("\nBluetooth troubleshooting:")
+                print("  - Make sure device is paired and connected")
+                print("  - On macOS, click 'Connect' in Bluetooth preferences")
+                print("  - Try disconnecting and reconnecting")
             return False
 
     def start(self):
@@ -91,10 +190,12 @@ class VloveClient:
 
         print()
         print("=" * 50)
-        print("   VLOVE CLIENT")
+        conn_type = "BLUETOOTH" if self.use_bluetooth else "USB"
+        print(f"   VLOVE CLIENT ({conn_type})")
         print("=" * 50)
         print()
         print("Listening for data...")
+        print("Type commands and press Enter to send to ESP32")
         print("Press Ctrl+C to exit")
         print()
 
@@ -123,7 +224,9 @@ class VloveClient:
                 cmd = input()
                 if self.serial and self.serial.is_open:
                     self.serial.write((cmd + '\n').encode())
-            except:
+            except EOFError:
+                break
+            except Exception:
                 pass
 
     def process_serial(self):
@@ -147,7 +250,10 @@ class VloveClient:
                 # Pass through other messages (calibration, help, etc.)
                 print(line)
 
-        except Exception as e:
+        except serial.SerialException:
+            print("\nConnection lost. Exiting...")
+            self.running = False
+        except Exception:
             pass
 
     def handle_gesture(self, line):
@@ -162,8 +268,8 @@ class VloveClient:
 
             print(f"[GESTURE] {display_name}")
 
-            # Play gesture sound
-            self.audio.play_gesture(gesture_name)
+            # Gesture sounds disabled - uncomment to enable
+            # self.audio.play_gesture(gesture_name)
 
         except Exception as e:
             print(f"Error parsing gesture: {e}")
@@ -223,21 +329,61 @@ class VloveClient:
 
             print(f"\r{bar}", end='')
 
-        except Exception as e:
+        except Exception:
             pass
+
+
+def print_help():
+    """Print usage help"""
+    print("""
+Vlove Client - ESP32 Glove Data Receiver
+
+Usage:
+    python vlove_client.py [options] [port]
+
+Options:
+    --bt, -b        Connect via Bluetooth
+    --list, -l      List available ports
+    --help, -h      Show this help
+
+Examples:
+    python vlove_client.py                     # Auto-detect USB
+    python vlove_client.py --bt                # Auto-detect Bluetooth
+    python vlove_client.py /dev/cu.usbserial-110
+    python vlove_client.py /dev/cu.vlove-left  # Specific BT port
+
+Bluetooth Setup:
+    1. Connect to ESP32 via USB first
+    2. Send 'BT' command to enable Bluetooth
+    3. Pair 'vlove-left' in your computer's Bluetooth settings
+    4. Run: python vlove_client.py --bt
+""")
 
 
 def main():
     port = None
     use_bt = False
+    list_only = False
 
     # Parse arguments
     for arg in sys.argv[1:]:
-        if arg == '--bt' or arg == '-b':
+        if arg in ('--bt', '-b'):
             use_bt = True
+        elif arg in ('--list', '-l'):
+            list_only = True
+        elif arg in ('--help', '-h'):
+            print_help()
+            return
         elif not arg.startswith('-'):
             port = arg
 
+    # List ports only
+    if list_only:
+        client = VloveClient()
+        client.list_ports()
+        return
+
+    # Start client
     client = VloveClient(port, use_bt)
     client.start()
 
